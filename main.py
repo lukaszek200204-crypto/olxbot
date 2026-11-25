@@ -188,6 +188,7 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--once", action="store_true")
     p.add_argument("--chat-id", action="store_true")
+    p.add_argument("--test", action="store_true", help="wyślij najnowsze ogłoszenie jako test (bez zapisu w bazie)")
     args = p.parse_args()
 
     cfg = load_config()
@@ -199,6 +200,19 @@ def main() -> None:
         return
     if not tg.chat_id:
         sys.exit("Uzupełnij telegram.chat_id w config.toml (python main.py --chat-id).")
+
+    if args.test:
+        search = cfg["search"][0]
+        offers = fetch_offers(search)
+        if not offers:
+            sys.exit("Test: OLX nie zwrócił ogłoszeń.")
+        o = offers[0]
+        log.info("Test: wysyłam '%s'", o.title)
+        msg = "🧪 <b>TEST – bot działa</b>\n\n" + format_simple(o, search.get("name", "?"))
+        if not tg.send(msg, photo=o.photos[0] if o.photos else None):
+            sys.exit("Test: Telegram odrzucił wiadomość - sprawdź sekrety TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.")
+        log.info("Test: wiadomość wysłana.")
+        return
 
     ccfg = cfg.get("claude", {})
     analyzer = None
