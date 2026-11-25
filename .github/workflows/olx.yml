@@ -5,6 +5,11 @@ on:
     # Co 15 minut (czas UTC). Repo prywatne: zmień na "*/30 * * * *", żeby zmieścić się w darmowym limicie.
     - cron: "*/15 * * * *"
   workflow_dispatch: # przycisk "Run workflow" do ręcznego uruchomienia
+    inputs:
+      test:
+        description: "Test: wyślij najnowsze ogłoszenie na Telegram (bez zapisu w bazie)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write # zapis bazy ogłoszeń na gałąź "state"
@@ -42,7 +47,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python main.py --once
+        run: python main.py ${{ inputs.test && '--test' || '--once' }}
 
       - name: Zapisz bazę
         if: always()
