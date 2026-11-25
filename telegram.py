@@ -72,7 +72,8 @@ class Telegram:
         self.base = f"https://api.telegram.org/bot{token}"
         self.chat_id = chat_id
 
-    def send(self, text: str, photo: str | None = None) -> None:
+    def send(self, text: str, photo: str | None = None) -> bool:
+        """Zwraca True, jeśli Telegram przyjął wiadomość."""
         # Podpis zdjęcia ma limit 1024 znaków - dłuższe wiadomości idą jako tekst
         if photo and len(text) <= 1024:
             r = requests.post(
@@ -81,7 +82,7 @@ class Telegram:
                 timeout=30,
             )
             if r.ok:
-                return
+                return True
             log.warning("sendPhoto nie powiódł się (%s), wysyłam tekst", r.text[:200])
         r = requests.post(
             f"{self.base}/sendMessage",
@@ -95,6 +96,7 @@ class Telegram:
         )
         if not r.ok:
             log.error("Telegram błąd: %s", r.text[:300])
+        return r.ok
 
     def print_chat_ids(self) -> None:
         r = requests.get(f"{self.base}/getUpdates", timeout=30)
