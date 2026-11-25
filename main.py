@@ -139,10 +139,7 @@ def run_once(cfg: dict, db: sqlite3.Connection, analyzer: Analyzer | None, tg: T
 
             if analyzer is None:  # tryb bez analizy - wysyłamy wszystko
                 log.info("  wysyłam: %s | %s", o.price_label, o.title[:70])
-                tg.send(format_simple(o, name), photo=o.photos[0] if o.photos else None)
-                db.execute("UPDATE offers SET notified=1 WHERE id=?", (o.id,))
-                db.commit()
-                time.sleep(1)  # limit Telegrama
+                _deliver(db, tg, o, format_simple(o, name))
                 continue
 
             try:
@@ -175,12 +172,20 @@ def run_once(cfg: dict, db: sqlite3.Connection, analyzer: Analyzer | None, tg: T
             if mid is not None and mid < min_profit:
                 continue
 
-            tg.send(format_message(o, a, name), photo=o.photos[0] if o.photos else None)
-            db.execute("UPDATE offers SET notified=1 WHERE id=?", (o.id,))
-            db.commit()
-            time.sleep(1)  # limit Telegrama
+            _deliver(db, tg, o, format_message(o, a, name))
 
     return ok_count > 0
+
+
+def _deliver(db: sqlite3.Connection, tg: Telegram, o, text: str) -> None:
+    """Wysyła powiadomienie; jeśli Telegram odrzuci, usuwa ogłoszenie z bazy, żeby ponowić w kolejnym przebiegu."""
+    if tg.send(text, photo=o.photos[0] if o.photos else None):
+        db.execute("UPDATE offers SET notified=1 WHERE id=?", (o.id,))
+    else:
+        log.error("  nie wysłano (%s) - ponowię w następnym przebiegu", o.title[:60])
+        db.execute("DELETE FROM offers WHERE id=?", (o.id,))
+    db.commit()
+    time.sleep(1)  # limit Telegrama
 
 
 def main() -> None:
