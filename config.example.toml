@@ -1,0 +1,67 @@
+# Skopiuj ten plik jako config.toml i uzupełnij.
+
+[telegram]
+bot_token = "123456789:ABC..."   # od @BotFather
+chat_id = ""                      # uruchom: python main.py --chat-id
+
+[claude]
+enabled = false                   # false = bez analizy AI (darmowe), wysyła wszystkie nowe ogłoszenia
+# Klucz API brany jest ze zmiennej środowiskowej ANTHROPIC_API_KEY.
+model = "claude-opus-5-5"         # tańsza opcja: "claude-sonnet-5-5"
+effort = "medium"                 # low | medium | high
+analyze_photos = true             # wysyłaj do analizy zdjęcia (max 3) - lepsza ocena usterki, nieco drożej
+
+[app]
+interval_minutes = 10             # co ile sprawdzać OLX
+# Powiadamiaj tylko, jeśli szacowany zysk (wariant środkowy) >= tej kwoty w zł
+min_profit_pln = 150
+# Pomijaj ogłoszenia droższe niż (zł), 0 = bez limitu
+max_price_pln = 3000
+# Przy pierwszym uruchomieniu istniejące ogłoszenia są tylko zapamiętywane (bez analizy),
+# żeby nie przepalić budżetu API. Ustaw na true, jeśli chcesz analizować także je.
+analyze_on_first_run = false
+# Pomijaj ogłoszenia wystawione dawniej niż X godzin temu (odświeżone stare oferty), 0 = bez limitu
+max_age_hours = 48
+# Pomijaj ogłoszenia tańsze niż (zł) oraz bez ceny (zamiana / za darmo), 0 = bez limitu
+min_price_pln = 100
+
+# Słowa wykluczające ogłoszenie, gdy wystąpią GDZIEKOLWIEK w tytule.
+# "słowo*" = każde słowo zaczynające się od tego (wentylator, wentylatora, wentylatory...)
+# "słowo"  = tylko dokładnie to słowo
+# Uwaga: słowa typu "etui", "rysik", "pad" często są częścią zestawu ("iPad + etui"), więc lepiej
+# dawać je niżej, do exclude_title_start. Tutaj tylko słowa, które ZAWSZE oznaczają śmieci.
+exclude_words = []
+
+# Słowa wykluczające tylko, gdy tytuł się od nich ZACZYNA (to wtedy część, a nie zestaw).
+# Dzięki temu "Pad PS4" odpadnie, ale "PS4 Pro + pad" przejdzie.
+exclude_title_start = [
+  "wentylator*", "wiatrak*", "podkładk*", "etui", "pokrowc*", "pokrowiec", "futerał*",
+  "foli*", "rysik*", "naklejk*", "skin*", "uchwyt*", "stojak*",
+  "pad", "pady", "kontroler*", "joystick*", "gamepad*", "dualsense", "dualshock", "kierownic*",
+  "ładowark*", "zasilacz*", "kabel", "kable", "przewód", "przewody",
+  "gra", "gry", "płyt*", "obudow*", "klapa", "ramk*", "zawias*", "taśm*",
+  "matryc*", "ekran*", "wyświetlacz*", "digitizer*", "szkło",
+  "bateri*", "akumulator*", "klawiatur*", "touchpad*", "dysk*", "ram", "pamięć",
+  "procesor*", "chłodzeni*", "radiator*", "głośnik*", "napęd*", "laser*", "czytnik*",
+  "port*", "gniazd*", "złącz*", "części", "część",
+]
+
+# Wyszukiwania. Każde to osobne zapytanie do OLX.
+# state = "damaged" -> filtr OLX "Stan: Uszkodzone" (działa w kategoriach, które go mają).
+# category_id = kategoria OLX (dokładniejsze niż fraza), query = opcjonalna fraza do zawężenia.
+[[search]]
+name = "Laptopy"
+category_id = 1199     # Elektronika > Komputery > Laptopy (wszystkie marki)
+state = "damaged"
+
+[[search]]
+name = "Konsole"
+category_id = 1604     # Elektronika > Gry i konsole > Konsole
+state = "damaged"
+
+[[search]]
+name = "Tablety"
+category_id = 2194     # Elektronika > Tablety
+state = "damaged"
+# Bez tabletów graficznych (słowa wykluczające tylko w tym wyszukiwaniu, gdziekolwiek w tytule)
+exclude_words = ["graficzn*", "wacom", "huion", "gaomon", "xp", "cintiq", "kamvas", "intuos", "veikk"]
