@@ -2,8 +2,9 @@ name: OLX Naprawy
 
 on:
   schedule:
-    # Co 15 minut (czas UTC). Repo prywatne: zmień na "*/30 * * * *", żeby zmieścić się w darmowym limicie.
-    - cron: "*/15 * * * *"
+    # Co 5 minut (minimum GitHuba; w praktyce bywa co 5-15 min przy obciążeniu GitHuba).
+    # Repo prywatne: zmień na "*/30 * * * *", żeby zmieścić się w darmowym limicie.
+    - cron: "*/5 * * * *"
   workflow_dispatch: # przycisk "Run workflow" do ręcznego uruchomienia
     inputs:
       test:
