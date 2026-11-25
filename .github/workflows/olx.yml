@@ -1,0 +1,57 @@
+name: OLX Naprawy
+
+on:
+  schedule:
+    # Co 15 minut (czas UTC). Repo prywatne: zmień na "*/30 * * * *", żeby zmieścić się w darmowym limicie.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: # przycisk "Run workflow" do ręcznego uruchomienia
+
+permissions:
+  contents: write # zapis bazy ogłoszeń na gałąź "state"
+
+concurrency:
+  group: olx-naprawy
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalacja bibliotek
+        run: pip install -r requirements.txt
+
+      - name: Przywróć bazę widzianych ogłoszeń
+        run: |
+          if git fetch --depth=1 origin state; then
+            git show FETCH_HEAD:olx.db > olx.db
+            echo "Baza przywrócona"
+          else
+            echo "Brak bazy - pierwsze uruchomienie"
+          fi
+
+      - name: Sprawdź OLX i wyślij powiadomienia
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python main.py --once
+
+      - name: Zapisz bazę
+        if: always()
+        run: |
+          [ -f olx.db ] || exit 0
+          cp olx.db /tmp/olx.db
+          cd "$(mktemp -d)"
+          git init -q -b state
+          cp /tmp/olx.db .
+          git add olx.db
+          git -c user.name="olx-bot" -c user.email="olx-bot@users.noreply.github.com" commit -qm "stan bazy"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" state
