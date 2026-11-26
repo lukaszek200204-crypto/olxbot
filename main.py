@@ -23,6 +23,7 @@ import anthropic
 
 from analyzer import Analyzer
 from olx import OLXError, fetch_offers
+from searches import load_searches
 from telegram import Telegram, format_message, format_simple, profit_range
 
 BASE = Path(__file__).parent
@@ -36,6 +37,12 @@ def load_config() -> dict:
         path = BASE / "config.example.toml"
     with open(path, "rb") as f:
         cfg = tomllib.load(f)
+    # Wyszukiwania z searches.txt (jeśli jest) mają pierwszeństwo przed [[search]] w configu
+    searches_file = BASE / "searches.txt"
+    if searches_file.exists():
+        cfg["search"] = load_searches(searches_file)
+        if not cfg["search"]:
+            sys.exit("searches.txt nie zawiera żadnego aktywnego wyszukiwania.")
     tg = cfg.setdefault("telegram", {})
     if os.environ.get("TELEGRAM_BOT_TOKEN"):
         tg["bot_token"] = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -69,16 +76,21 @@ def _word_match(word: str, token: str) -> bool:
 def excluded_by(title: str, app: dict, search: dict | None = None) -> str | None:
     """Zwraca słowo, które wyklucza ogłoszenie, albo None.
     Sprawdza listy globalne ([app]) oraz exclude_words danego wyszukiwania."""
-    tokens = re.findall(r"\w+", title.lower())
+    low = title.lower()
+    tokens = re.findall(r"\w+", low)
     if not tokens:
         return None
+    # Wyszukiwanie po frazie: tytuł musi zawierać wszystkie słowa frazy (OLX zwraca też luźne dopasowania)
+    for w in (search or {}).get("require_words", []):
+        if w not in low:
+            return f"brak '{w}' w tytule"
     for w in app.get("exclude_words", []) + (search or {}).get("exclude_words", []):
         w = w.lower()
         if any(_word_match(w, t) for t in tokens):
-            return w
+            return f"słowo '{w}'"
     for w in app.get("exclude_title_start", []):
         if _word_match(w.lower(), tokens[0]):
-            return w
+            return f"tytuł zaczyna się od '{w}'"
     return None
 
 
@@ -107,6 +119,11 @@ def run_once(cfg: dict, db: sqlite3.Connection, analyzer: Analyzer | None, tg: T
             db.execute("INSERT OR IGNORE INTO searches (name) VALUES (?)", (name,))
             db.commit()
 
+        if not offers:
+            log.warning(
+                "[%s] OLX nie zwrócił żadnych ogłoszeń - jeśli to kategoria, może nie mieć filtra stanu "
+                "'uszkodzone'; spróbuj stanu 'wszystkie' albo frazy.", name
+            )
         new = [o for o in offers if not db.execute("SELECT 1 FROM offers WHERE id=?", (o.id,)).fetchone()]
         log.info("[%s] %d ogłoszeń, nowych: %d", name, len(offers), len(new))
 
@@ -126,14 +143,16 @@ def run_once(cfg: dict, db: sqlite3.Connection, analyzer: Analyzer | None, tg: T
                         continue
                 except ValueError:
                     pass
-            word = excluded_by(o.title, app, search)
-            if word:
-                log.info("  pomijam (słowo '%s'): %s", word, o.title[:70])
+            reason = excluded_by(o.title, app, search)
+            if reason:
+                log.info("  pomijam (%s): %s", reason, o.title[:70])
                 continue
-            if min_price and (o.price is None or o.price < min_price):
-                log.info("  pomijam (cena %s < %d zł): %s", o.price_label, min_price, o.title[:70])
+            lo = search.get("min_price", min_price)
+            hi = search.get("max_price", max_price)
+            if lo and (o.price is None or o.price < lo):
+                log.info("  pomijam (cena %s < %d zł): %s", o.price_label, lo, o.title[:70])
                 continue
-            if max_price and o.price and o.price > max_price:
+            if hi and o.price and o.price > hi:
                 log.info("  pomijam (za drogie %s): %s", o.price_label, o.title)
                 continue
 

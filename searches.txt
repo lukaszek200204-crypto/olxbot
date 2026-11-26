@@ -1,0 +1,30 @@
+# ================== WYSZUKIWANIA OLX ==================
+# Jedna linia = jedno wyszukiwanie. Format:
+#
+#   fraza | stan | bez: słowa, wykluczone | cena: od-do
+#
+# fraza  - czego szukać, np. iphone 14 pro (tytuł ogłoszenia musi zawierać WSZYSTKIE słowa)
+#          albo cała kategoria OLX:  kategoria: laptopy
+#          (gotowe nazwy: laptopy, konsole, tablety, telefony)
+#          albo DOWOLNA kategoria - wejdź na OLX w kategorię i skopiuj link z paska przeglądarki:
+#          kategoria: https://www.olx.pl/dom-ogrod/narzedzia/elektronarzedzia/
+# stan   - uszkodzony / nieuszkodzony / wszystkie
+# bez:   - (opcjonalnie) pomiń ogłoszenia z tymi słowami w tytule, po przecinku.
+#          "folia*" = każde słowo zaczynające się od "folia" (folia, folie, foliowy...)
+# cena:  - (opcjonalnie) własny zakres ceny w zł dla tego wyszukiwania, np. cena: 1500-2800
+#          (bez tego obowiązują ogólne limity z config: 100-3000 zł)
+#
+# Linia zaczynająca się od # jest pomijana - tak wyłączysz wyszukiwanie bez kasowania.
+# Wielkość liter nie ma znaczenia.
+# ======================================================
+
+kategoria: laptopy | uszkodzony
+kategoria: konsole | uszkodzony
+kategoria: tablety | uszkodzony | bez: graficzn*, wacom, huion, gaomon, xp, cintiq, kamvas, intuos, veikk
+
+# Przykłady (usuń # na początku, żeby włączyć):
+# iphone 14 pro | nieuszkodzony | bez: etui, case, szkło, folia*, obudowa | cena: 1500-2800
+# iphone 14 pro | uszkodzony
+# kategoria: telefony | uszkodzony
+# kategoria: https://www.olx.pl/elektronika/fotografia/ | uszkodzony
+# kategoria: https://www.olx.pl/dom-ogrod/narzedzia/elektronarzedzia/ | uszkodzony | cena: 150-1500

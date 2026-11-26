@@ -46,22 +46,4 @@ exclude_title_start = [
   "port*", "gniazd*", "złącz*", "części", "część",
 ]
 
-# Wyszukiwania. Każde to osobne zapytanie do OLX.
-# state = "damaged" -> filtr OLX "Stan: Uszkodzone" (działa w kategoriach, które go mają).
-# category_id = kategoria OLX (dokładniejsze niż fraza), query = opcjonalna fraza do zawężenia.
-[[search]]
-name = "Laptopy"
-category_id = 1199     # Elektronika > Komputery > Laptopy (wszystkie marki)
-state = "damaged"
-
-[[search]]
-name = "Konsole"
-category_id = 1604     # Elektronika > Gry i konsole > Konsole
-state = "damaged"
-
-[[search]]
-name = "Tablety"
-category_id = 2194     # Elektronika > Tablety
-state = "damaged"
-# Bez tabletów graficznych (słowa wykluczające tylko w tym wyszukiwaniu, gdziekolwiek w tytule)
-exclude_words = ["graficzn*", "wacom", "huion", "gaomon", "xp", "cintiq", "kamvas", "intuos", "veikk"]
+# WYSZUKIWANIA są w osobnym pliku: searches.txt (jedna linia = jedno wyszukiwanie).

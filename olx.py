@@ -76,8 +76,37 @@ def _parse(raw: dict) -> Offer:
     )
 
 
+_CATEGORY_CACHE: dict[str, int] = {}
+_CATEGORY_PAT = re.compile(r'(?:category_id|categoryId|cat_id)\\?"?\s*[:=]\s*\\?"?(\d+)')
+
+
+def resolve_category(url: str) -> int:
+    """Ustala numer kategorii OLX na podstawie linku do strony kategorii."""
+    url = url.split("?")[0].split("#")[0]
+    url = re.sub(r"^(https?://)?(www\.)?olx\.pl", "", url.strip(), flags=re.I)
+    url = "https://www.olx.pl/" + url.lstrip("/")
+    if not url.endswith("/"):
+        url += "/"
+    if url in _CATEGORY_CACHE:
+        return _CATEGORY_CACHE[url]
+    try:
+        r = cffi_requests.get(url, headers={"Accept-Language": "pl-PL,pl;q=0.9"}, timeout=30, impersonate="chrome")
+    except Exception as e:
+        raise OLXError(f"nie mogę otworzyć {url}: {e}") from e
+    if r.status_code != 200:
+        raise OLXError(f"strona kategorii {url} zwróciła HTTP {r.status_code} - sprawdź link")
+    ids = _CATEGORY_PAT.findall(r.text)
+    if not ids:
+        raise OLXError(f"nie znalazłem numeru kategorii na {url}")
+    best = max(set(ids), key=ids.count)
+    _CATEGORY_CACHE[url] = int(best)
+    return int(best)
+
+
 def fetch_offers(search: dict, limit: int = 40) -> list[Offer]:
     """Zwraca najnowsze ogłoszenia dla jednego wyszukiwania z configu."""
+    if search.get("category_url") and not search.get("category_id"):
+        search["category_id"] = resolve_category(search["category_url"])
     q = {
         "offset": 0,
         "limit": limit,
@@ -87,8 +116,9 @@ def fetch_offers(search: dict, limit: int = 40) -> list[Offer]:
         q["query"] = search["query"]
     if search.get("category_id"):
         q["category_id"] = search["category_id"]
-    if search.get("state"):
-        q["filter_enum_state[0]"] = search["state"]
+    states = search.get("states") or ([search["state"]] if search.get("state") else [])
+    for i, st in enumerate(states):
+        q[f"filter_enum_state[{i}]"] = st
 
     try:
         r = cffi_requests.get(API_URL, params=q, headers=HEADERS, timeout=30, impersonate="chrome")
