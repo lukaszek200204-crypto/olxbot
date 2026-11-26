@@ -21,6 +21,8 @@
 kategoria: laptopy | uszkodzony
 kategoria: konsole | uszkodzony
 kategoria: tablety | uszkodzony | bez: graficzn*, wacom, huion, gaomon, xp, cintiq, kamvas, intuos, veikk
+logitech z5500 | uszkodzony
+logitech z906 | uszkodzony
 
 # Przykłady (usuń # na początku, żeby włączyć):
 # iphone 14 pro | nieuszkodzony | bez: etui, case, szkło, folia*, obudowa | cena: 1500-2800
