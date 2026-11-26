@@ -82,16 +82,30 @@ def excluded_by(title: str, app: dict, search: dict | None = None) -> str | None
         return None
     # Wyszukiwanie po frazie: tytuł musi zawierać wszystkie słowa frazy (OLX zwraca też luźne dopasowania)
     for w in (search or {}).get("require_words", []):
-        if w not in low:
+        if not _has_word(w, tokens):
             return f"brak '{w}' w tytule"
     for w in app.get("exclude_words", []) + (search or {}).get("exclude_words", []):
         w = w.lower()
         if any(_word_match(w, t) for t in tokens):
             return f"słowo '{w}'"
-    for w in app.get("exclude_title_start", []):
-        if _word_match(w.lower(), tokens[0]):
-            return f"tytuł zaczyna się od '{w}'"
+    # Ogólna lista części dotyczy tylko kategorii. Przy frazie (np. "logitech z906") tytuł
+    # "Głośniki Logitech Z906" to pełny zestaw, a nie część - tu wystarcza "bez:" z searches.txt.
+    if "query" not in (search or {}):
+        for w in app.get("exclude_title_start", []):
+            if _word_match(w.lower(), tokens[0]):
+                return f"tytuł zaczyna się od '{w}'"
     return None
+
+
+def _has_word(word: str, tokens: list[str]) -> bool:
+    """Czy słowo frazy występuje w tytule. Model z cyframi pasuje też, gdy sprzedawca rozdzielił go
+    myślnikiem/spacją ("Z-5500", "Z 5500" = "z5500"); słowo z samych liter pasuje też jako początek
+    dłuższego ("pro" -> "promax")."""
+    word = re.sub(r"\W", "", word.lower())
+    candidates = set(tokens) | {a + b for a, b in zip(tokens, tokens[1:])}
+    if word in candidates:
+        return True
+    return word.isalpha() and any(t.startswith(word) for t in tokens)
 
 
 def run_once(cfg: dict, db: sqlite3.Connection, analyzer: Analyzer | None, tg: Telegram) -> bool:
